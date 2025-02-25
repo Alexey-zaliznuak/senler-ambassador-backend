@@ -16,9 +16,6 @@ export const appConfigValidationSchema = Joi.object({
   CACHE_DATABASE_URL: Joi.string().uri().required(),
   CACHE_DEFAULT_TTL: Joi.number().required(),
 
-  SENLER_GROUP_CACHE_TTL: Joi.number().required(),
-  LEAD_CACHE_TTL: Joi.number().required(),
-
   MAX_CONSOLE_LOG_MESSAGE: Joi.number().default(AppConfig.MAX_CONSOLE_LOG_MESSAGE),
 
   AMO_CRM_CLIENT_ID: Joi.string().required(),
