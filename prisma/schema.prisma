@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Ambassador {
+  id               String              @id @default(uuid())
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  name             String
+
+  isDeleted        Boolean             @default(false)
+  promoCode        String?
+
+  channelTypeId    String
+  subscriberId     String
+
+  rooms            AmbassadorRoom[]
+}
+
+model Room {
+  id                        String      @id @default(uuid())
+  createdAt                 DateTime    @default(now())
+  updatedAt                 DateTime    @updatedAt
+
+  name                      String
+
+  pendingSubscriptionId     String    // уточнить
+  approvedSubscriptionId    String    // уточнить
+  rejectedSubscriptionId    String    // уточнить
+
+  webhookUrls               String[]  // уточнить
+  secretKey                 String
+
+  isDeleted                 Boolean    @default(false)
+
+  senlerChannelId           Int
+  sprints                   Sprint[]
+  ambassadors               AmbassadorRoom[]
+}
+
+model Sprint {
+  id                        String                     @id @default(uuid())
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+
+  name                      String
+
+  startDate                 DateTime?                  @db.Date
+  endDate                   DateTime?                  @db.Date
+
+  promoCode                 String
+  promoCodeUsageLimit       Int?
+
+  isDeleted                 Boolean                    @default(false)
+
+  rewardForReferredUsers    RewardForReferredUsers?
+  rewardIsGiven             Boolean                    @default(false)
+
+  room                      Room                       @relation(fields: [roomId], references: [id])
+  roomId                    String
+}
+
+// Many bonuses in one reward(cash, sales, etc)
+model RewardForReferredUsers {
+  id            String      @id @default(uuid())
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  cashReward    Int?
+
+  sprint        Sprint      @relation(fields: [sprintId], references: [id])
+  sprintId      String      @unique
+}
+
+model AmbassadorRoom {
+  id              String              @id @default(uuid())
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  status          AmbassadorStatus    @default(pending)
+
+  room            Room                @relation(fields: [roomId], references: [id])
+  roomId          String
+
+  ambassador      Ambassador          @relation(fields: [ambassadorId], references: [id])
+  ambassadorId    String
+
+  @@unique([roomId, ambassadorId])
+}
+
+enum AmbassadorStatus {
+  pending
+  approved
+  rejected
+}

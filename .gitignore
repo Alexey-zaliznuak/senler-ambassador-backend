@@ -1,0 +1,14 @@
+dist/
+temp/
+
+node_modules/
+logs/
+
+.env*
+
+note.js
+note.ts
+
+test.ts
+
+pnpm-lock.yaml
