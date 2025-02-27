@@ -8,19 +8,20 @@ datasource db {
 }
 
 model Ambassador {
-  id               String              @id @default(uuid())
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
+  id                 String              @id @default(uuid())
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
 
-  name             String
+  name               String
 
-  isDeleted        Boolean             @default(false)
-  promoCode        String?
+  isDeleted          Boolean             @default(false)
+  promoCode          String?
 
-  channelTypeId    String
-  subscriberId     String
+  channelTypeId      String
+  subscriberId       String
 
-  rooms            AmbassadorRoom[]
+  rooms              AmbassadorRoom[]
+  promoCodeUsages    PromoCodeUsage[]
 }
 
 model Room {
@@ -30,52 +31,58 @@ model Room {
 
   name                      String
 
-  pendingSubscriptionId     String    // уточнить
-  approvedSubscriptionId    String    // уточнить
-  rejectedSubscriptionId    String    // уточнить
+  pendingSubscriptionId     String
+  approvedSubscriptionId    String
+  rejectedSubscriptionId    String
 
-  webhookUrls               String[]  // уточнить
+  webhookUrl                String
   secretKey                 String
 
   isDeleted                 Boolean    @default(false)
 
   senlerChannelId           Int
+
   sprints                   Sprint[]
   ambassadors               AmbassadorRoom[]
 }
 
 model Sprint {
-  id                        String                     @id @default(uuid())
-  createdAt                 DateTime                   @default(now())
-  updatedAt                 DateTime                   @updatedAt
+  id                      String              @id @default(uuid())
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
 
-  name                      String
+  name                    String
 
-  startDate                 DateTime?                  @db.Date
-  endDate                   DateTime?                  @db.Date
+  endDate                 DateTime?           @db.Date
+  startDate               DateTime?           @db.Date
 
-  promoCode                 String
-  promoCodeUsageLimit       Int?
+  promoCodeUsagesCount    Int                 @default(0)
+  promoCodeUsageLimit     Int?
+  isDeleted               Boolean             @default(false)
 
-  isDeleted                 Boolean                    @default(false)
 
-  rewardForReferredUsers    RewardForReferredUsers?
-  rewardIsGiven             Boolean                    @default(false)
+  rewardType              RewardType
+  rewardValue             Int
+  rewardUnits             String
+  room                    Room                @relation(fields: [roomId], references: [id])
 
-  room                      Room                       @relation(fields: [roomId], references: [id])
-  roomId                    String
+  roomId                  String
+
+  promoCodeUsages         PromoCodeUsage[]
 }
 
-// Many bonuses in one reward(cash, sales, etc)
-model RewardForReferredUsers {
-  id            String      @id @default(uuid())
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+model PromoCodeUsage {
+  id              String        @id @default(uuid())
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
-  cashReward    Int?
+  sprint          Sprint        @relation(fields: [sprintId], references: [id])
+  sprintId        String
 
-  sprint        Sprint      @relation(fields: [sprintId], references: [id])
-  sprintId      String      @unique
+  ambassadorId    String
+  ambassador      Ambassador    @relation(fields: [ambassadorId], references: [id])
+
+  uniqueId        String
 }
 
 model AmbassadorRoom {
@@ -92,6 +99,10 @@ model AmbassadorRoom {
   ambassadorId    String
 
   @@unique([roomId, ambassadorId])
+}
+
+enum RewardType {
+  fix
 }
 
 enum AmbassadorStatus {

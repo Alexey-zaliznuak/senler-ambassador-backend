@@ -14,6 +14,9 @@ import { CustomConfigModule } from './infrastructure/config/config.module';
 import { AppConfig } from './infrastructure/config/config.app-config';
 import { appConfigValidationSchema } from './infrastructure/config/config.validation-schema';
 import { DatabaseModule } from './infrastructure/database/database.module';
+import { RewardsController } from './domain/rewards/rewards.controller';
+import { RewardsModule } from './domain/rewards/rewards.module';
+import { PromoCodesModule } from './domain/promoCodes/promo-codes.module';
 
 @Module({
   imports: [
@@ -24,14 +27,16 @@ import { DatabaseModule } from './infrastructure/database/database.module';
     }),
     CustomConfigModule.forRoot(),
 
+    RewardsModule,
+    PromoCodesModule,
+
     // Infrastructure
     LoggingModule.forRoot(),
     AxiosModule.forRoot(),
     DatabaseModule.forRoot(),
-
   ],
 
-  controllers: [AppController],
+  controllers: [AppController, RewardsController],
 
   providers: [
     AppService,

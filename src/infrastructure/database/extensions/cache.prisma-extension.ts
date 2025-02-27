@@ -1,4 +1,4 @@
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { createClient, RedisClientType } from 'redis';
 import { AppConfigType } from 'src/infrastructure/config/config.app-config';
@@ -32,7 +32,7 @@ export class PrismaCacheExtensionService implements OnModuleInit {
       url: this.appConfig.CACHE_DATABASE_URL,
       socket: {
         reconnectStrategy: attempts => {
-          this.logger.warn(`Cache database reconnection attempt ${attempts}`);
+          this.logger.warn(`Cache database reconnection attempt ${attempts}.`);
           return Math.min(attempts * 100, 1000);
         },
       },
@@ -207,7 +207,23 @@ export class PrismaCacheExtensionService implements OnModuleInit {
 
             const result = await context.findFirstWithCache(args);
 
-            return !!result;
+            return result !== null;
+          },
+
+          existsOrNotFoundErrorWithCache: async function <T, Args extends Prisma.Args<T, 'findFirst'>['where']>(
+            this: T,
+            args: Args
+          ): Promise<boolean> {
+            const context = Prisma.getExtensionContext(this) as any;
+            const model = context.$name;
+
+            let result = await context.existsWithCache(args);
+
+            if (result === null) {
+              throw new NotFoundException(`${model} not found.`);
+            }
+
+            return true;
           },
 
           invalidateCache: async function <T>(this: T, objectIds: string | string[]): Promise<void> {
