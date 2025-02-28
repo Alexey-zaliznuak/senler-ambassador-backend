@@ -1,6 +1,7 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, Request } from '@nestjs/common';
 import { PromoCodesService } from './promo-codes.service';
 import { CreatePromoCodeUsageDto } from './dto/use-promo-code.dto';
+import { CustomRequest } from 'src/infrastructure/requests';
 
 @Controller('promo-code')
 export class PromoCodesController {
@@ -9,5 +10,10 @@ export class PromoCodesController {
   @Post('use')
   async usePromoCode(@Body() dto: CreatePromoCodeUsageDto) {
     return this.promoCodeService.usePromoCode(dto);
+  }
+
+  @Post('testWebhook')
+  async testWebhook(@Request() req: CustomRequest, @Body() body: any) {
+    req.logger.info("Webhook received", body);
   }
 }
