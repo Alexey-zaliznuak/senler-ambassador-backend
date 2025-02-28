@@ -1,8 +1,8 @@
 import { Inject, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { createClient, RedisClientType } from 'redis';
-import { AppConfigType } from 'src/infrastructure/config/config.app-config';
-import { CONFIG } from 'src/infrastructure/config/config.module';
+import { AppConfigType } from '../../config/config.app-config';
+import { CONFIG } from '../../config/config.module';
 import { Logger } from 'winston';
 import { LOGGER_INJECTABLE_NAME } from '../database.config';
 
@@ -74,7 +74,7 @@ export class PrismaCacheExtensionService implements OnModuleInit {
             if (cachedResult == NULL_CACHE_VALUE) return null;
             if (cachedResult) return cachedResult;
 
-            const result = await context(args);
+            const result = await context.findFirst(args);
 
             await serviceThis.saveResultInCache(model, cacheKey, result);
 
@@ -272,22 +272,22 @@ export class PrismaCacheExtensionService implements OnModuleInit {
       const cachedData = await this.client.get(cacheKey);
       if (cachedData) {
         this.cacheHits += 1;
-        this.logger.debug(
-          `Cache statistics: hist = ${this.cacheHits}, misses = ${this.cacheMisses}, errors = ${this.cacheErrors}, reconnections = ${this.cacheReconnections}, hits/total = ${((this.cacheHits / (this.cacheHits + this.cacheMisses + this.cacheErrors)) * 100).toFixed(1)}%`
-        );
+
+        this.logger.debug(this.cacheStatics);
+
         return JSON.parse(cachedData);
       }
 
       this.cacheMisses += 1;
 
-      this.logger.debug(
-        `Cache statistics: hist = ${this.cacheHits}, misses = ${this.cacheMisses}, errors = ${this.cacheErrors}, reconnections = ${this.cacheReconnections}, hits/total = ${((this.cacheHits / (this.cacheHits + this.cacheMisses + this.cacheErrors)) * 100).toFixed(1)}%`
-      );
+      this.logger.debug(this.cacheStatics);
 
       return null;
     } catch (error) {
       this.cacheErrors += 1;
+
       this.logger.error('Cache read error:', error);
+
       return null;
     }
   }
@@ -340,5 +340,9 @@ export class PrismaCacheExtensionService implements OnModuleInit {
 
   buildIndexCacheKey(model: string, recordId: string): string {
     return `${PRISMA_OBJECTS_PARAMS_VARIANTS_BY_ID_PREFIX}${model}:${recordId}`;
+  }
+
+  get cacheStatics() {
+    return `Cache statistics: hist = ${this.cacheHits}, misses = ${this.cacheMisses}, errors = ${this.cacheErrors}, reconnections = ${this.cacheReconnections}, hits/total = ${((this.cacheHits / (this.cacheHits + this.cacheMisses + this.cacheErrors)) * 100).toFixed(1)}%`;
   }
 }

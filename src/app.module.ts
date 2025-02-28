@@ -17,6 +17,7 @@ import { DatabaseModule } from './infrastructure/database/database.module';
 import { RewardsController } from './domain/rewards/rewards.controller';
 import { RewardsModule } from './domain/rewards/rewards.module';
 import { PromoCodesModule } from './domain/promoCodes/promo-codes.module';
+import { PrismaNotFoundExceptionFilter } from './infrastructure/exceptionFilters/prisma-not-found.filter';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { PromoCodesModule } from './domain/promoCodes/promo-codes.module';
   providers: [
     AppService,
 
+    { provide: APP_FILTER, useClass: PrismaNotFoundExceptionFilter },
     { provide: APP_FILTER, useClass: HttpExceptionFilter },
 
     { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
