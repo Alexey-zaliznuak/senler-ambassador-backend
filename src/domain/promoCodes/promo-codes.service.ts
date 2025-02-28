@@ -3,6 +3,7 @@ import { AXIOS, AxiosService } from 'src/infrastructure/axios/instance';
 import { PRISMA } from 'src/infrastructure/database/database.config';
 import { ExtendedPrismaClientType } from 'src/infrastructure/database/database.service';
 import { CreatePromoCodeUsageDto } from './dto/use-promo-code.dto';
+import { EventType } from '@prisma/client';
 
 @Injectable()
 export class PromoCodesService {
@@ -51,8 +52,9 @@ export class PromoCodesService {
         throw new BadRequestException('Promo code usage limit has been reached.');
       }
 
-      const existingUsage = await transaction.promoCodeUsage.findFirst({
+      const existingUsage = await transaction.event.findFirst({
         where: {
+          type: EventType.promoCodeUsage,
           sprintId: activeSprint.id,
           uniqueId,
           ambassadorId: ambassador.id,
@@ -61,8 +63,9 @@ export class PromoCodesService {
 
       if (existingUsage) throw new BadRequestException('Promo code already usage.');
 
-      await transaction.promoCodeUsage.create({
+      await transaction.event.create({
         data: {
+          type: EventType.promoCodeUsage,
           sprintId: activeSprint.id,
           ambassadorId: ambassador.id,
           uniqueId,

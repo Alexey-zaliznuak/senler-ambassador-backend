@@ -21,7 +21,7 @@ model Ambassador {
   subscriberId       String
 
   rooms              AmbassadorRoom[]
-  promoCodeUsages    PromoCodeUsage[]
+  Events    Event[]
 }
 
 model Room {
@@ -44,6 +44,7 @@ model Room {
 
   sprints                   Sprint[]
   ambassadors               AmbassadorRoom[]
+  events                    Event[]
 }
 
 model Sprint {
@@ -58,8 +59,8 @@ model Sprint {
 
   promoCodeUsagesCount    Int                 @default(0)
   promoCodeUsageLimit     Int?
-  isDeleted               Boolean             @default(false)
 
+  isDeleted               Boolean             @default(false)
 
   rewardType              RewardType
   rewardValue             Int
@@ -68,19 +69,25 @@ model Sprint {
 
   roomId                  String
 
-  promoCodeUsages         PromoCodeUsage[]
+  events         Event[]
 }
 
-model PromoCodeUsage {
-  id              String        @id @default(uuid())
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+model Event {
+  id              String         @id @default(uuid())
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
-  sprint          Sprint        @relation(fields: [sprintId], references: [id])
-  sprintId        String
+  type            EventType
+  payload         Json?
 
-  ambassadorId    String
-  ambassador      Ambassador    @relation(fields: [ambassadorId], references: [id])
+  sprint          Sprint?        @relation(fields: [sprintId], references: [id])
+  sprintId        String?
+
+  ambassador      Ambassador?    @relation(fields: [ambassadorId], references: [id])
+  ambassadorId    String?
+
+  room            Room?          @relation(fields: [roomId], references: [id])
+  roomId          String?
 
   uniqueId        String
 }
@@ -99,6 +106,10 @@ model AmbassadorRoom {
   ambassadorId    String
 
   @@unique([roomId, ambassadorId])
+}
+
+enum EventType {
+  promoCodeUsage
 }
 
 enum RewardType {
