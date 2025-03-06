@@ -100,8 +100,9 @@ export class AxiosService {
         logger.info(`Sending request to ${config.url}`, {
           method: config.method,
           url: config.url,
-          data: config.data,
           headers: config.headers,
+          data: config.data,
+          params: config.params,
         });
 
         return config;

@@ -9,6 +9,14 @@ async function bootstrap() {
   const config = app.get<AppConfigType>('CONFIG');
 
   app.setGlobalPrefix('api');
+  app.enableCors({
+    origin: '*', // Разрешить все домены
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS', // Все методы
+    allowedHeaders: '*', // Все заголовки
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+    credentials: true, // Если нужны куки/авторизация
+  });
 
   AppService.setupSwaggerDocument(app);
   AppService.removePoweredByHeader(app);
