@@ -11,7 +11,7 @@ export class PromoCodesController {
   @Post('use')
   @ApiBody({ type: CreatePromoCodeUsageDto })
   async usePromoCode(@Body() dto: CreatePromoCodeUsageDto) {
-    return this.promoCodeService.usePromoCode(dto);
+    return await this.promoCodeService.usePromoCode(dto);
   }
 
   @Post('testWebhook')

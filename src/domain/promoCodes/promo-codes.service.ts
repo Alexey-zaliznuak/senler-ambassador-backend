@@ -45,7 +45,7 @@ export class PromoCodesService {
       where: { promoCode, isDeleted: false },
     });
 
-    return this.prisma.$transaction(async transaction => {
+    return await this.prisma.$transaction(async transaction => {
       const currentSprint = await transaction.sprint.findUnique({
         where: { id: activeSprint.id },
         include: { room: true },
@@ -104,7 +104,6 @@ export class PromoCodesService {
         }
       );
 
-      this.logger.info("", axiosResponse.data)
       if (axiosResponse.data.success === true) {
         await transaction.sprint.updateWithCacheInvalidate({
           where: { id: activeSprint.id },
@@ -113,6 +112,12 @@ export class PromoCodesService {
       }
       else {
         throw new BadGatewayException(axiosResponse.data)
+      }
+
+      return {
+        rewardType: currentSprint.rewardType,
+        rewardUnits: currentSprint.rewardUnits,
+        rewardValue: currentSprint.rewardValue,
       }
     })
   }
