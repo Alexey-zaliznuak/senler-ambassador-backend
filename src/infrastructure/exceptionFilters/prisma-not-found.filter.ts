@@ -13,6 +13,12 @@ export class PrismaNotFoundExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
+    this.logger.error('Prisma error occurred', {
+      exception: exception.message,
+      code: exception.code,
+      meta: exception.meta,
+    });
+
     if (exception.code === 'P2025') {
       const status = HttpStatus.NOT_FOUND;
 
@@ -20,17 +26,11 @@ export class PrismaNotFoundExceptionFilter implements ExceptionFilter {
         statusCode: status,
         timestamp: new Date().toISOString(),
         path: request.url,
-        message: 'Not found',
+        message: `${exception.meta.modelName} not found`,
       });
 
       return;
     }
-
-    this.logger.error('Prisma error occurred', {
-      exception: exception.message,
-      code: exception.code,
-      meta: exception.meta,
-    });
 
     response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
