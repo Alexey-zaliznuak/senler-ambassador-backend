@@ -1,14 +1,22 @@
-import { Inject, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { Prisma, PrismaClient } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { createClient, RedisClientType } from 'redis';
+import { Logger } from 'winston';
 import { AppConfigType } from '../../config/config.app-config';
 import { CONFIG } from '../../config/config.module';
-import { Logger } from 'winston';
 import { LOGGER_INJECTABLE_NAME } from '../database.config';
 
-const PRISMA_OBJECTS_CACHE_PREFIX = 'cache:prisma:objectByParams:';
-const PRISMA_OBJECTS_PARAMS_VARIANTS_BY_ID_PREFIX = 'cache:prisma:objectParamsById:'; // For remove cache for object from any args
-const NULL_CACHE_VALUE = 'EMPTY'; // When null is exists key value
+const PRISMA_OBJECTS_CACHE_PREFIX = 'PRISMA_CACHE:OBJECT_BY_PARAMS:';
+const PRISMA_OBJECTS_PARAMS_VARIANTS_BY_ID_PREFIX = 'PRISMA_CACHE:OBJECT_PARAMS_BY_ID:'; // For remove cache for object from any args
+const NO_CACHE_VALUE = 'EMPTY';
+
+const PrismaNotFoundException = new PrismaClientKnownRequestError('Not found', { code: 'P2025', clientVersion: '6.3.1' });
+
+export type CacheConfig = {
+  ttl?: number;
+  nullResultTtl?: number;
+};
 
 @Injectable()
 export class PrismaCacheExtensionService implements OnModuleInit {
@@ -32,7 +40,7 @@ export class PrismaCacheExtensionService implements OnModuleInit {
       url: this.appConfig.CACHE_DATABASE_URL,
       socket: {
         reconnectStrategy: attempts => {
-          this.logger.warn(`Cache database reconnection attempt ${attempts}.`);
+          this.logger.warn(`Cache database reconnection attempt ${attempts}`);
           return Math.min(attempts * 100, 1000);
         },
       },
@@ -64,19 +72,19 @@ export class PrismaCacheExtensionService implements OnModuleInit {
             T,
             Args extends Prisma.Args<T, 'findFirst'>,
             Result = Prisma.Result<T, Args, 'findFirst'>,
-          >(this: T, args: Args): Promise<Result> {
+          >(this: T, args: Args, cacheConfig?: CacheConfig): Promise<Result> {
             const context = Prisma.getExtensionContext(this) as any;
             const model = context.$name;
 
-            const cacheKey = serviceThis.buildObjectCacheKey(model, args);
-            const cachedResult = await serviceThis.getCachedDataOrNull<Result>(cacheKey);
+            const cacheKey = serviceThis.buildObjectCacheKey(model, { args, cacheConfig });
+            const cachedResult = await serviceThis.getCachedData<Result>(cacheKey);
 
-            if (cachedResult == NULL_CACHE_VALUE) return null;
+            if (cachedResult == NO_CACHE_VALUE) return null;
             if (cachedResult) return cachedResult;
 
             const result = await context.findFirst(args);
 
-            await serviceThis.saveResultInCache(model, cacheKey, result);
+            await serviceThis.saveResultInCache(model, cacheKey, result, cacheConfig);
 
             return result;
           },
@@ -85,35 +93,42 @@ export class PrismaCacheExtensionService implements OnModuleInit {
             T,
             Args extends Prisma.Args<T, 'findFirstOrThrow'>,
             Result = Prisma.Result<T, Args, 'findFirstOrThrow'>,
-          >(this: T, args: Args): Promise<Result> {
+          >(this: T, args: Args, cacheConfig?: CacheConfig): Promise<Result> {
             const context = Prisma.getExtensionContext(this) as any;
             const model = context.$name;
 
-            const cacheKey = serviceThis.buildObjectCacheKey(model, args);
-            const cachedResult = await serviceThis.getCachedDataOrNull<Result>(cacheKey);
+            const cacheKey = serviceThis.buildObjectCacheKey(model, { args, cacheConfig });
+            const cachedResult = await serviceThis.getCachedData<Result>(cacheKey);
 
-            if (cachedResult == NULL_CACHE_VALUE) return null;
+            if (cachedResult == NO_CACHE_VALUE) throw PrismaNotFoundException;
             if (cachedResult) return cachedResult;
 
-            const result = await context.findFirstOrThrow(args);
+            try {
+              const result = await context.findFirstOrThrow(args);
 
-            await serviceThis.saveResultInCache(model, cacheKey, result);
+              await serviceThis.saveResultInCache(model, cacheKey, result);
 
-            return result;
+              return result;
+            } catch (error) {
+              if (error instanceof PrismaClientKnownRequestError && error.code == 'P2025') {
+                await serviceThis.saveResultInCache(model, cacheKey, null);
+              }
+              throw error;
+            }
           },
 
           findUniqueWithCache: async function <
             T,
             Args extends Prisma.Args<T, 'findUnique'>,
             Result = Prisma.Result<T, Args, 'findUnique'>,
-          >(this: T, args: Args): Promise<Result> {
+          >(this: T, args: Args, cacheConfig?: CacheConfig): Promise<Result> {
             const context = Prisma.getExtensionContext(this) as any;
             const model = context.$name;
 
-            const cacheKey = serviceThis.buildObjectCacheKey(model, args);
-            const cachedResult = await serviceThis.getCachedDataOrNull<Result>(cacheKey);
+            const cacheKey = serviceThis.buildObjectCacheKey(model, { args, cacheConfig });
+            const cachedResult = await serviceThis.getCachedData<Result>(cacheKey);
 
-            if (cachedResult == NULL_CACHE_VALUE) return null;
+            if (cachedResult == NO_CACHE_VALUE) return null;
             if (cachedResult) return cachedResult;
 
             const result = await context.findUnique(args);
@@ -127,28 +142,35 @@ export class PrismaCacheExtensionService implements OnModuleInit {
             T,
             Args extends Prisma.Args<T, 'findUniqueOrThrow'>,
             Result = Prisma.Result<T, Args, 'findUniqueOrThrow'>,
-          >(this: T, args: Args): Promise<Result> {
+          >(this: T, args: Args, cacheConfig?: CacheConfig): Promise<Result> {
             const context = Prisma.getExtensionContext(this) as any;
             const model = context.$name;
 
-            const cacheKey = serviceThis.buildObjectCacheKey(model, args);
-            const cachedResult = await serviceThis.getCachedDataOrNull<Result>(cacheKey);
+            const cacheKey = serviceThis.buildObjectCacheKey(model, { args, cacheConfig });
+            const cachedResult = await serviceThis.getCachedData<Result>(cacheKey);
 
-            if (cachedResult == NULL_CACHE_VALUE) return null;
+            if (cachedResult == NO_CACHE_VALUE) throw PrismaNotFoundException;
             if (cachedResult) return cachedResult;
 
-            const result = await context.findUniqueOrThrow(args);
+            try {
+              const result = await context.findUniqueOrThrow(args);
 
-            await serviceThis.saveResultInCache(model, cacheKey, result);
+              await serviceThis.saveResultInCache(model, cacheKey, result);
 
-            return result;
+              return result;
+            } catch (error) {
+              if (error instanceof PrismaClientKnownRequestError && error.code == 'P2025') {
+                await serviceThis.saveResultInCache(model, cacheKey, null);
+              }
+              throw error;
+            }
           },
 
           updateWithCacheInvalidate: async function <
             T,
             Args extends Prisma.Args<T, 'update'>,
             Result = Prisma.Result<T, Args, 'update'>,
-          >(this: T, args: Args): Promise<Result> {
+          >(this: T, args: Args, cacheConfig?: CacheConfig): Promise<Result> {
             const context = Prisma.getExtensionContext(this) as any;
             const model = context.$name;
 
@@ -165,7 +187,7 @@ export class PrismaCacheExtensionService implements OnModuleInit {
             T,
             Args extends Prisma.Args<T, 'upsert'>,
             Result = Prisma.Result<T, Args, 'upsert'>,
-          >(this: T, args: Args): Promise<Result> {
+          >(this: T, args: Args, cacheConfig?: CacheConfig): Promise<Result> {
             const context = Prisma.getExtensionContext(this) as any;
             const model = context.$name;
 
@@ -181,7 +203,7 @@ export class PrismaCacheExtensionService implements OnModuleInit {
             T,
             Args extends Prisma.Args<T, 'delete'>,
             Result = Prisma.Result<T, Args, 'delete'>,
-          >(this: T, args: Args): Promise<Result> {
+          >(this: T, args: Args, cacheConfig?: CacheConfig): Promise<Result> {
             const context = Prisma.getExtensionContext(this) as any;
             const model = context.$name;
 
@@ -195,35 +217,20 @@ export class PrismaCacheExtensionService implements OnModuleInit {
 
           existsWithCache: async function <T, Args extends Prisma.Args<T, 'findFirst'>['where']>(
             this: T,
-            args: Args
+            args: Args,
+            cacheConfig?: CacheConfig
           ): Promise<boolean> {
             const context = Prisma.getExtensionContext(this) as any;
             const model = context.$name;
 
-            const cacheKey = serviceThis.buildObjectCacheKey(model, args);
-            const cachedResult = await serviceThis.getCachedDataOrNull(cacheKey);
+            const cacheKey = serviceThis.buildObjectCacheKey(model, { args, cacheConfig });
+            const cachedResult = await serviceThis.getCachedData(cacheKey);
 
             if (cachedResult) return true;
 
-            const result = await context.findFirstWithCache(args);
+            const result = await context.findFirstWithCache({where: args});
 
-            return result !== null;
-          },
-
-          existsOrNotFoundErrorWithCache: async function <T, Args extends Prisma.Args<T, 'findFirst'>['where']>(
-            this: T,
-            args: Args
-          ): Promise<boolean> {
-            const context = Prisma.getExtensionContext(this) as any;
-            const model = context.$name;
-
-            let result = await context.existsWithCache(args);
-
-            if (result === null) {
-              throw new NotFoundException(`${model} not found.`);
-            }
-
-            return true;
+            return !!result;
           },
 
           invalidateCache: async function <T>(this: T, objectIds: string | string[]): Promise<void> {
@@ -265,7 +272,7 @@ export class PrismaCacheExtensionService implements OnModuleInit {
     }
   }
 
-  private async getCachedDataOrNull<T = any>(cacheKey: string): Promise<T | null> {
+  private async getCachedData<T = any>(cacheKey: string): Promise<T | null> {
     await this.connectClientIfNeed();
 
     try {
@@ -273,33 +280,31 @@ export class PrismaCacheExtensionService implements OnModuleInit {
       if (cachedData) {
         this.cacheHits += 1;
 
-        this.logger.debug(this.cacheStatics);
-
         return JSON.parse(cachedData);
       }
 
       this.cacheMisses += 1;
 
-      this.logger.debug(this.cacheStatics);
-
       return null;
     } catch (error) {
       this.cacheErrors += 1;
-
       this.logger.error('Cache read error:', error);
-
       return null;
     }
   }
 
-  private async saveResultInCache(model: string, cacheKey: string, result: any) {
+  private async saveResultInCache(model: string, cacheKey: string, result: any, cacheConfig?: CacheConfig) {
     await this.connectClientIfNeed();
 
     try {
-      const ttl = this.appConfig.CACHE_SPECIFIC_TTL[model] || this.appConfig.CACHE_DEFAULT_TTL;
+      const ttl = cacheConfig?.ttl || this.appConfig.CACHE_SPECIFIC_TTL[model] || this.appConfig.CACHE_DEFAULT_TTL;
 
       if (result === null) {
-        await this.client.setEx(cacheKey, this.appConfig.CACHE_NULL_RESULT_TTL, JSON.stringify(NULL_CACHE_VALUE));
+        await this.client.setEx(
+          cacheKey,
+          cacheConfig?.nullResultTtl || this.appConfig.CACHE_NULL_RESULT_TTL,
+          JSON.stringify(NO_CACHE_VALUE)
+        );
         return;
       }
 
@@ -342,7 +347,13 @@ export class PrismaCacheExtensionService implements OnModuleInit {
     return `${PRISMA_OBJECTS_PARAMS_VARIANTS_BY_ID_PREFIX}${model}:${recordId}`;
   }
 
-  get cacheStatics() {
-    return `Cache statistics: hist = ${this.cacheHits}, misses = ${this.cacheMisses}, errors = ${this.cacheErrors}, reconnections = ${this.cacheReconnections}, hits/total = ${((this.cacheHits / (this.cacheHits + this.cacheMisses + this.cacheErrors)) * 100).toFixed(1)}%`;
+  get cacheStatistics() {
+    return {
+      hits: this.cacheHits,
+      misses: this.cacheMisses,
+      errors: this.cacheErrors,
+      reconnections: this.cacheReconnections,
+      hitsRatio: (((this.cacheHits / (this.cacheHits + this.cacheMisses + this.cacheErrors)) * 100) || 0).toFixed(1),
+    };
   }
 }

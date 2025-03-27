@@ -42,8 +42,8 @@ import { PrismaNotFoundExceptionFilter } from './infrastructure/exceptionFilters
   providers: [
     AppService,
 
-    { provide: APP_FILTER, useClass: HttpExceptionFilter },
     { provide: APP_FILTER, useClass: PrismaNotFoundExceptionFilter },
+    { provide: APP_FILTER, useClass: HttpExceptionFilter },
 
     { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
     { provide: APP_INTERCEPTOR, useClass: ProcessTimeInterceptor },

@@ -2,17 +2,17 @@ import { BadGatewayException, BadRequestException, Inject, Injectable } from '@n
 import { EventType } from '@prisma/client';
 import { AXIOS, AxiosService } from 'src/infrastructure/axios/instance';
 import { PRISMA } from 'src/infrastructure/database/database.config';
-import { ExtendedPrismaClientType } from 'src/infrastructure/database/database.service';
+import { PrismaExtendedClientType } from 'src/infrastructure/database/database.service';
+import { Logger } from 'winston';
 import { CreatePromoCodeUsageDto } from './dto/use-promo-code.dto';
 import { LOGGER_INJECTABLE_NAME } from './promo-codes.config';
-import { Logger } from 'winston';
 
 @Injectable()
 export class PromoCodesService {
   constructor(
-    @Inject(PRISMA) private readonly prisma: ExtendedPrismaClientType,
+    @Inject(PRISMA) private readonly prisma: PrismaExtendedClientType,
     @Inject(AXIOS) private readonly axios: AxiosService,
-    @Inject(LOGGER_INJECTABLE_NAME) private readonly logger: Logger,
+    @Inject(LOGGER_INJECTABLE_NAME) private readonly logger: Logger
   ) {}
 
   async usePromoCode(dto: CreatePromoCodeUsageDto) {
@@ -79,7 +79,7 @@ export class PromoCodesService {
         },
       });
 
-      const axiosResponse = await this.axios.post<{success?: true}>(
+      const axiosResponse = await this.axios.post<{ success?: true }>(
         currentSprint.room.webhookUrl,
         {
           value: promoCode,
@@ -100,7 +100,7 @@ export class PromoCodesService {
             action: 'promocode_activate',
             unique_id: uniqueId,
           },
-          validateStatus: (_status) => true,
+          validateStatus: _status => true,
         }
       );
 
@@ -109,16 +109,15 @@ export class PromoCodesService {
           where: { id: activeSprint.id },
           data: { promoCodeUsagesCount: { increment: 1 } },
         });
-      }
-      else {
-        throw new BadGatewayException(axiosResponse.data)
+      } else {
+        throw new BadGatewayException(axiosResponse.data);
       }
 
       return {
         rewardType: currentSprint.rewardType,
         rewardUnits: currentSprint.rewardUnits,
         rewardValue: currentSprint.rewardValue,
-      }
-    })
+      };
+    });
   }
 }

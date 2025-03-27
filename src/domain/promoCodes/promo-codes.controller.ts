@@ -1,12 +1,17 @@
-import { Body, Controller, Post, Request } from '@nestjs/common';
+import { Body, Controller, Inject, Post, Request } from '@nestjs/common';
 import { ApiBody } from '@nestjs/swagger';
+import { PRISMA } from 'src/infrastructure/database/database.config';
+import { PrismaExtendedClientType } from 'src/infrastructure/database/database.service';
 import { CustomRequest } from 'src/infrastructure/requests';
 import { CreatePromoCodeUsageDto } from './dto/use-promo-code.dto';
 import { PromoCodesService } from './promo-codes.service';
 
 @Controller('promo-code')
 export class PromoCodesController {
-  constructor(private readonly promoCodeService: PromoCodesService) {}
+  constructor(
+    private readonly promoCodeService: PromoCodesService,
+    @Inject(PRISMA) private readonly prisma: PrismaExtendedClientType
+  ) {}
 
   @Post('use')
   @ApiBody({ type: CreatePromoCodeUsageDto })
@@ -15,8 +20,8 @@ export class PromoCodesController {
   }
 
   @Post('testWebhook')
-  async testWebhook(@Request() req: CustomRequest, @Body() body: any): Promise<{ success: boolean }> {
+  async testWebhook(@Request() req: CustomRequest, @Body() body: any): Promise<any> {
     req.logger.info('Webhook received', body);
-    return { success: true };
+    return await this.prisma.ambassador.findFirstOrThrow({ where: { id: '1' } });
   }
 }
