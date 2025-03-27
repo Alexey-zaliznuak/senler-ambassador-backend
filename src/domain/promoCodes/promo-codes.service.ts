@@ -79,39 +79,39 @@ export class PromoCodesService {
         },
       });
 
-      // const axiosResponse = await this.axios.post<{ success?: true }>(
-      //   currentSprint.room.webhookUrl,
-      //   {
-      //     value: promoCode,
-      //     reward: {
-      //       type: currentSprint.rewardType,
-      //       value: currentSprint.rewardValue,
-      //       units: currentSprint.rewardUnits,
-      //     },
-      //   },
-      //   {
-      //     params: {
-      //       channel_id: currentSprint.room.senlerChannelId,
-      //       room_id: roomId,
-      //       sprint_id: currentSprint.id,
-      //       ambassador_id: ambassador.id,
-      //       secret_key: currentSprint.room.secretKey,
-      //       securityCode: securityCode,
-      //       action: 'promocode_activate',
-      //       unique_id: uniqueId,
-      //     },
-      //     validateStatus: _status => true,
-      //   }
-      // );
+      const axiosResponse = await this.axios.post<{ success?: true }>(
+        currentSprint.room.webhookUrl,
+        {
+          value: promoCode,
+          reward: {
+            type: currentSprint.rewardType,
+            value: currentSprint.rewardValue,
+            units: currentSprint.rewardUnits,
+          },
+        },
+        {
+          params: {
+            channel_id: currentSprint.room.senlerChannelId,
+            room_id: roomId,
+            sprint_id: currentSprint.id,
+            ambassador_id: ambassador.id,
+            secret_key: currentSprint.room.secretKey,
+            securityCode: securityCode,
+            action: 'promocode_activate',
+            unique_id: uniqueId,
+          },
+          validateStatus: _status => true,
+        }
+      );
 
-      // if (axiosResponse.data.success === true) {
-      //   await transaction.sprint.updateWithCacheInvalidate({
-      //     where: { id: activeSprint.id },
-      //     data: { promoCodeUsagesCount: { increment: 1 } },
-      //   });
-      // } else {
-      //   throw new BadGatewayException(axiosResponse.data, "Can not apply promocode: external service not available");
-      // }
+      if (axiosResponse.data.success === true) {
+        await transaction.sprint.updateWithCacheInvalidate({
+          where: { id: activeSprint.id },
+          data: { promoCodeUsagesCount: { increment: 1 } },
+        });
+      } else {
+        throw new BadGatewayException(axiosResponse.data, "Can not apply promocode: external service not available");
+      }
 
       return {
         rewardType: currentSprint.rewardType,
