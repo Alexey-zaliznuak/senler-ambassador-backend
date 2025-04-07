@@ -21,8 +21,8 @@ export class PromoCodesService {
 
     this.logger.error("AMBASSADOr", {
       where: { promoCode, isDeleted: false },
-      prisma: this.prisma.ambassador.findFirst({where: {promoCode, isDeleted: false}}),
-      prisma2: this.prisma.ambassador.findFirst({where: {promoCode}})
+      prisma: await this.prisma.ambassador.findFirst({where: {promoCode, isDeleted: false}}),
+      prisma2: await this.prisma.ambassador.findFirst({where: {promoCode}})
     })
 
     let activeSprint = await this.prisma.sprint.findFirstWithCache({
