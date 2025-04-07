@@ -41,7 +41,7 @@ export class PromoCodesService {
 
     if (!activeSprint) throw new BadRequestException('No active sprints found');
 
-    const ambassador = await this.prisma.ambassador.findFirstOrThrowWithCache({
+    const ambassador = await this.prisma.ambassador.findFirst({
       where: { promoCode, isDeleted: false },
     });
 
