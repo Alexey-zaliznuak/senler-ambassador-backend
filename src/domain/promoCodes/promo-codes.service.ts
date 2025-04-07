@@ -19,12 +19,6 @@ export class PromoCodesService {
     const { roomId, promoCode, uniqueId, securityCode } = dto;
     const currentDate = new Date();
 
-    this.logger.error("AMBASSADOr", {
-      where: { promoCode, isDeleted: false },
-      prisma: await this.prisma.ambassador.findFirst({where: {promoCode, isDeleted: false}}),
-      prisma2: await this.prisma.ambassador.findFirst({where: {promoCode}})
-    })
-
     let activeSprint = await this.prisma.sprint.findFirstWithCache({
       where: {
         roomId,
@@ -47,7 +41,6 @@ export class PromoCodesService {
 
     if (!activeSprint) throw new BadRequestException('No active sprints found');
 
-    // todo - UPDATE CACHE MODULE
     const ambassador = await this.prisma.ambassador.findFirstOrThrow({
       where: { promoCode, isDeleted: false },
     });

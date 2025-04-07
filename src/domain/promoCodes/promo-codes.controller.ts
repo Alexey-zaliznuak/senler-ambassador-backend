@@ -21,7 +21,6 @@ export class PromoCodesController {
 
   @Post('testWebhook')
   async testWebhook(@Request() req: CustomRequest, @Body() body: any): Promise<any> {
-    req.logger.info('Webhook received', body);
-    return await this.prisma.ambassador.findFirstOrThrow({ where: { id: '1' } });
+    return await {success: true}
   }
 }
