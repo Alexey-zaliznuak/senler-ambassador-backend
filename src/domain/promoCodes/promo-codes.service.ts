@@ -19,6 +19,12 @@ export class PromoCodesService {
     const { roomId, promoCode, uniqueId, securityCode } = dto;
     const currentDate = new Date();
 
+    this.logger.error("AMBASSADOr", {
+      where: { promoCode, isDeleted: false },
+      prisma: this.prisma.ambassador.findFirst({where: {promoCode, isDeleted: false}}),
+      prisma2: this.prisma.ambassador.findFirst({where: {promoCode}})
+    })
+
     let activeSprint = await this.prisma.sprint.findFirstWithCache({
       where: {
         roomId,
