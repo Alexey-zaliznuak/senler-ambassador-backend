@@ -41,9 +41,12 @@ export class PromoCodesService {
 
     if (!activeSprint) throw new BadRequestException('No active sprints found');
 
-    const ambassador = await this.prisma.ambassador.findFirstOrThrow({
+    const ambassador = await this.prisma.ambassador.findFirst({
       where: { promoCode, isDeleted: false },
     });
+    if (!ambassador) {
+      throw new BadRequestException('Promo code not found');
+    }
 
     return await this.prisma.$transaction(async transaction => {
       const currentSprint = await transaction.sprint.findUnique({
