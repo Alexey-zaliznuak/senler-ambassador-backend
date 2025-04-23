@@ -19,23 +19,25 @@ export class PromoCodesService {
     const { roomId, promoCode, uniqueId, securityCode } = dto;
     const currentDate = new Date();
 
-    let activeSprint = await this.prisma.sprint.findFirstWithCache({
+    let activeSprint = await this.prisma.sprint.findFirst({
       where: {
         roomId,
         isDeleted: false,
         startDate: { lte: currentDate },
         endDate: { gte: currentDate },
       },
+      include: { room: true },
     });
 
     if (!activeSprint) {
-      activeSprint = await this.prisma.sprint.findFirstWithCache({
+      activeSprint = await this.prisma.sprint.findFirst({
         where: {
           roomId,
           isDeleted: false,
           startDate: { lte: currentDate },
           endDate: null,
         },
+        include: { room: true },
       });
     }
 
@@ -49,17 +51,11 @@ export class PromoCodesService {
     }
 
     return await this.prisma.$transaction(async transaction => {
-      const currentSprint = await transaction.sprint.findUnique({
-        where: { id: activeSprint.id },
-        include: { room: true },
-      });
-
       if (
-        currentSprint !== null &&
-        currentSprint.promoCodeUsageLimit &&
-        currentSprint.promoCodeUsagesCount >= currentSprint.promoCodeUsageLimit
+        activeSprint.promoCodeUsageLimit &&
+        activeSprint.promoCodeUsagesCount >= activeSprint.promoCodeUsageLimit
       ) {
-        throw new BadRequestException('Promo code usage limit has been reached.');
+        throw new BadRequestException('Promo code usage limit has been reached');
       }
 
       const existingUsage = await transaction.event.findFirst({
@@ -71,7 +67,7 @@ export class PromoCodesService {
         },
       });
 
-      if (existingUsage) throw new BadRequestException('Promo code already usage.');
+      if (existingUsage) throw new BadRequestException('Promo code already usage');
 
       await transaction.event.create({
         data: {
@@ -83,22 +79,22 @@ export class PromoCodesService {
       });
 
       const axiosResponse = await this.axios.post<{ success?: true }>(
-        currentSprint.room.webhookUrl,
+        activeSprint.room.webhookUrl,
         {
           value: promoCode,
           reward: {
-            type: currentSprint.rewardType,
-            value: currentSprint.rewardValue,
-            units: currentSprint.rewardUnits,
+            type: activeSprint.rewardType,
+            value: activeSprint.rewardValue,
+            units: activeSprint.rewardUnits,
           },
         },
         {
           params: {
-            channel_id: currentSprint.room.senlerChannelId,
+            channel_id: activeSprint.room.senlerChannelId,
             room_id: roomId,
-            sprint_id: currentSprint.id,
+            sprint_id: activeSprint.id,
             ambassador_id: ambassador.id,
-            secret_key: currentSprint.room.secretKey,
+            secret_key: activeSprint.room.secretKey,
             securityCode: securityCode,
             action: 'promocode_activate',
             unique_id: uniqueId,
@@ -113,13 +109,13 @@ export class PromoCodesService {
           data: { promoCodeUsagesCount: { increment: 1 } },
         });
       } else {
-        throw new BadGatewayException(axiosResponse.data, "Can not apply promocode: external service not available");
+        throw new BadGatewayException(axiosResponse.data, 'Can not apply promocode: external service not available');
       }
 
       return {
-        rewardType: currentSprint.rewardType,
-        rewardUnits: currentSprint.rewardUnits,
-        rewardValue: currentSprint.rewardValue,
+        rewardType: activeSprint.rewardType,
+        rewardUnits: activeSprint.rewardUnits,
+        rewardValue: activeSprint.rewardValue,
       };
     });
   }
