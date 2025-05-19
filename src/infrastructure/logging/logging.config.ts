@@ -1,6 +1,8 @@
 import * as winston from 'winston';
 import * as Transport from 'winston-transport';
-import { AppConfig, AppConfigType } from '../config/config.app-config';
+import { AppConfigType } from '../config/config.app-config';
+
+export const LOGGER = 'WinstonLogger';
 
 export const baseLogFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
@@ -19,44 +21,26 @@ export const baseLogFormat = winston.format.combine(
   })
 );
 
-export const prettyLogPrintFormat = winston.format.printf(({ level, message, timestamp, context, ...meta }) => {
+export const prettyLogStreamFormat = winston.format.printf(({ level, message, timestamp, context, ...meta }) => {
   const formattedMessage = typeof message === 'object' ? JSON.stringify(message, null, 4) : message;
   const formattedMeta = meta && Object.keys(meta) ? JSON.stringify(meta, null, 4) : '';
 
-  let logMessage = `${timestamp} [${context || 'Application'}] ${level}: ${formattedMessage} ${formattedMeta}`;
-  logMessage =
-    logMessage.length > AppConfig.MAX_CONSOLE_LOG_MESSAGE
-      ? logMessage.substring(0, AppConfig.MAX_CONSOLE_LOG_MESSAGE) + '...'
-      : logMessage;
-
-  return logMessage;
+  return `${timestamp} [${context || 'Application'}] ${level}: ${formattedMessage} ${formattedMeta}`;
 });
 
-export const prettyLogFormat = winston.format.combine(
+export const prettyLogStreamFormatWithColorsAndDatetime = winston.format.combine(
   winston.format.colorize(),
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-  prettyLogPrintFormat
+  prettyLogStreamFormat
 );
 
 export const baseTransports = (config: AppConfigType): Transport[] => [
   new winston.transports.Console({
     level: 'debug',
-    format: prettyLogFormat,
+    format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
   }),
-  // new LokiTransport({
-  //   host: config.LOKI_HOST,
-  //   labels: {
-  //     service: config.INSTANCE_NAME,
-  //     instance: config.INSTANCE_ID,
-  //   },
-  //   json: true,
-  //   basicAuth: config.LOKI_USERNAME + ':' + config.LOKI_AUTH_TOKEN,
-  //   format: winston.format.json(),
-  //   replaceTimestamp: true,
-  //   onConnectionError: err => {
-  //     if (err) {
-  //       console.error('Connection to Loki failed. Check your host and credentials.');
-  //     }
-  //   },
+  // new winston.transports.Console({
+  //   level: 'debug',
+  //   format: prettyLogStreamFormatWithColorsAndDatetime,
   // }),
 ];

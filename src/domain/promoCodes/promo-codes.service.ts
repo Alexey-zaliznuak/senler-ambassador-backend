@@ -1,6 +1,6 @@
 import { BadGatewayException, BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { EventType } from '@prisma/client';
-import { AXIOS, AxiosService } from 'src/infrastructure/axios/instance';
+import { AXIOS, CustomAxiosInstance } from 'src/infrastructure/axios/instance';
 import { PRISMA } from 'src/infrastructure/database/database.config';
 import { PrismaExtendedClientType } from 'src/infrastructure/database/database.service';
 import { Logger } from 'winston';
@@ -11,7 +11,7 @@ import { LOGGER_INJECTABLE_NAME } from './promo-codes.config';
 export class PromoCodesService {
   constructor(
     @Inject(PRISMA) private readonly prisma: PrismaExtendedClientType,
-    @Inject(AXIOS) private readonly axios: AxiosService,
+    @Inject(AXIOS) private readonly axios: CustomAxiosInstance,
     @Inject(LOGGER_INJECTABLE_NAME) private readonly logger: Logger
   ) {}
 
@@ -51,10 +51,7 @@ export class PromoCodesService {
     }
 
     return await this.prisma.$transaction(async transaction => {
-      if (
-        activeSprint.promoCodeUsageLimit &&
-        activeSprint.promoCodeUsagesCount >= activeSprint.promoCodeUsageLimit
-      ) {
+      if (activeSprint.promoCodeUsageLimit && activeSprint.promoCodeUsagesCount >= activeSprint.promoCodeUsageLimit) {
         throw new BadRequestException('Promo code usage limit has been reached');
       }
 

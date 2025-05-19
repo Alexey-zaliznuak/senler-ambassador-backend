@@ -7,7 +7,7 @@ import { AXIOS, BASE_RETRY_CONFIG, LOGGER_INJECTABLE_NAME } from './axios.instan
 import { CreateCustomAxiosInstanceOptions, CustomAxiosRequestConfig, RequestLoggerData } from './axios.instance.dto';
 
 @Injectable()
-export class AxiosService {
+export class CustomAxiosInstance {
   private readonly axios: AxiosInstance;
   private readonly defaults: CreateCustomAxiosInstanceOptions;
 
@@ -46,6 +46,18 @@ export class AxiosService {
 
     try {
       return await this.axios.post<T>(url, data, customConfig);
+    } finally {
+      this.deleteRequestLogger(customConfig.requestId);
+    }
+  }
+
+  async postForm<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    const customConfig = this.setRequestId(config);
+
+    this.setRequestLogger(url, customConfig);
+
+    try {
+      return await this.axios.postForm<T>(url, data, customConfig);
     } finally {
       this.deleteRequestLogger(customConfig.requestId);
     }
@@ -100,9 +112,8 @@ export class AxiosService {
         logger.info(`Sending request to ${config.url}`, {
           method: config.method,
           url: config.url,
-          headers: config.headers,
           data: config.data,
-          params: config.params,
+          headers: config.headers,
         });
 
         return config;

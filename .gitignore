@@ -1,5 +1,6 @@
 dist/
 temp/
+appLogs/
 
 node_modules/
 logs/

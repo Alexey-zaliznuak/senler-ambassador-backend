@@ -2,7 +2,7 @@ import { Catch, ExceptionFilter, ArgumentsHost, HttpStatus, Inject } from '@nest
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { Request, Response } from 'express';
 import { Logger } from 'winston';
-import { LOGGER } from '../logging/logging.module';
+import { LOGGER } from '../logging/logging.config';
 
 @Catch(PrismaClientKnownRequestError)
 export class PrismaNotFoundExceptionFilter implements ExceptionFilter {

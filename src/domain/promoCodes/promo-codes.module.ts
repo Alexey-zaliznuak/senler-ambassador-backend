@@ -2,11 +2,11 @@ import { Module } from '@nestjs/common';
 import { PromoCodesController } from './promo-codes.controller';
 import { PromoCodesService } from './promo-codes.service';
 import { LoggingModule } from 'src/infrastructure/logging/logging.module';
-import { PROMO_CODES } from './promo-codes.config';
+import { LOGGER_INJECTABLE_NAME } from './promo-codes.config';
 
 @Module({
   controllers: [PromoCodesController],
   providers: [PromoCodesService],
-  imports: [LoggingModule.forFeature(PROMO_CODES)],
+  imports: [LoggingModule.forFeature(LOGGER_INJECTABLE_NAME)],
 })
 export class PromoCodesModule {}

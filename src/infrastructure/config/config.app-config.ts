@@ -12,30 +12,15 @@ export enum NodeEnv {
 export const AppConfig = {
   NODE_ENV: process.env.NODE_ENV || NodeEnv.local,
 
-  INSTANCE_NAME: process.env.INSTANCE_NAME || 'senler-amocrm-integration-backend',
-  INSTANCE_ID: process.env.INSTANCE_ID || uuidv4(),
-
-  INTEGRATION_SECRET: process.env.INTEGRATION_SECRET,
-
   PORT: parseInt(process.env.PORT) || 3000,
 
   DATABASE_URL: process.env.DEV_SERVER_URL,
 
   CACHE_DATABASE_URL: process.env.CACHE_DATABASE_URL,
-  CACHE_DEFAULT_TTL: parseInt(process.env.CACHE_DEFAULT_TTL),
+  CACHE_DEFAULT_TTL: parseInt(process.env.CACHE_DEFAULT_TTL) || 60,
   CACHE_SPECIFIC_TTL: {},
 
-  CACHE_NULL_RESULT_TTL: parseInt(process.env.CACHE_NULL_RESULT_TTL),
-
-  MAX_CONSOLE_LOG_MESSAGE: parseInt(process.env.MAX_CONSOLE_LOG_MESSAGE) || 5000,
-
-  AMO_CRM_CLIENT_ID: process.env.AMO_CRM_CLIENT_ID,
-  AMO_CRM_CLIENT_SECRET: process.env.AMO_CRM_CLIENT_SECRET,
-  AMO_CRM_REDIRECT_URI: process.env.AMO_CRM_REDIRECT_URI,
-
-  LOKI_HOST: process.env.LOKI_HOST,
-  LOKI_USERNAME: process.env.LOKI_USERNAME,
-  LOKI_AUTH_TOKEN: process.env.LOKI_AUTH_TOKEN,
+  CACHE_NULL_RESULT_TTL: parseInt(process.env.CACHE_NULL_RESULT_TTL) || 5,
 };
 
 export type AppConfigType = typeof AppConfig;
